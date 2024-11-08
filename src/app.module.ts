@@ -1,39 +1,46 @@
 // src/app.module.ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from './entities/paris/v1/User';
-import { Tournament } from './entities/paris/v1/Tournament';
-import { ChampionshipDay } from './entities/paris/v1/ChampionshipDay';
-import { Match } from './entities/paris/v1/Match';
-import { Bet } from './entities/paris/v1/Bet';
-import { Configuration } from './entities/paris/v1/Configuration';
+import { ConfigModule } from '@nestjs/config';
 
-import { UsersModule } from './users/users.module';
+import { UsersModule } from './modules/users/users.module';
+import { TournamentsModule } from './modules/tournaments/tournaments.module';
+import { ChampionshipDaysModule } from './modules/championshipDays/championshipDays.module';
+import { MatchesModule } from './modules/matches/matches.module';
+import { BetsModule } from './modules/bets/bets.module';
+import { ConfigurationsModule } from './modules/configurations/configurations.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-		      type: 'mysql',
-      host: 'localhost',
-      port: 23307,
-      username: 'root',
-      password: 'rootROOTROOT66',
-      database: 'base2',
-      entities: ['src/../**/*.entity.js'],  
-      database: 'sports_betting',
-	  entities: [__dirname + '/entities/paris/v1/*.{ts,js}'],
-      synchronize: true, // Désactiver en production !
+  
+    // Charger les variables d'environnement depuis le fichier .env
+    ConfigModule.forRoot({
+      isGlobal: true, // Rendre le module Config accessible partout
     }),
-    TypeOrmModule.forFeature([
-      User,
-      Tournament,
-      ChampionshipDay,
-      Match,
-      Bet,
-      Configuration,
-    ]),
-	 UsersModule,
-  ],
+	
+	
+    // Configuration de la connexion à la base de données
+    TypeOrmModule.forRoot({
+      type: 'mysql', // Type de base de données (ex: postgres, sqlite, etc.)
+	  
+	  host: process.env.DB_HOST,
+	  port: parseInt(process.env.DB_PORT, 10),
+      username: process.env.DB_USERNAME,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_DATABASE,
+	  
+	  
+      entities: [__dirname + '/entities/paris/v1/*.{ts,js}'], // Chemin vers les entités
+      synchronize: true, // Synchroniser les entités avec la base (désactiver en production)
+    }),
 
+    // Importation des modules
+    UsersModule,
+    TournamentsModule,
+    ChampionshipDaysModule,
+    MatchesModule,
+    BetsModule,
+    ConfigurationsModule,
+  ],
 })
 export class AppModule {}
