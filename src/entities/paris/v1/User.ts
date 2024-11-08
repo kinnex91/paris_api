@@ -1,4 +1,4 @@
-// src/paris/v1/entities/User.ts
+// src/entities/paris/v1/User.ts
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { Bet } from './Bet';
 

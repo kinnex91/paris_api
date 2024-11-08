@@ -1,3 +1,9 @@
+// src/users/users.controller.ts
+import { Controller, Get, Post, Patch, Delete, Param, Body } from '@nestjs/common';
+import { MatchesService } from './matches.service';
+import { Match } from '../../entities/paris/v1/Match';
+
+
 @Controller('matches')
 export class MatchesController {
   constructor(private readonly matchesService: MatchesService) {}

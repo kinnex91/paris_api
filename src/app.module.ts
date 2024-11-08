@@ -24,7 +24,7 @@ import { ConfigurationsModule } from './modules/configurations/configurations.mo
       type: 'mysql', // Type de base de données (ex: postgres, sqlite, etc.)
 	  
 	  host: process.env.DB_HOST,
-	  port: parseInt(process.env.DB_PORT, 10),
+	  port: parseInt(process.env.DB_PORT || '3306', 10),
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_DATABASE,

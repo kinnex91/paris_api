@@ -2,7 +2,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from '../paris/v1/entities/User';
+import { User } from '../../entities/paris/v1/User';
 
 @Injectable()
 export class UserService {

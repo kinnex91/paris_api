@@ -1,5 +1,5 @@
 // src/entities/Match.ts
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from 'typeorm';
 import { ChampionshipDay } from './ChampionshipDay';
 import { Bet } from './Bet';
 
