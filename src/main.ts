@@ -13,7 +13,7 @@ async function bootstrap() {
   });
 
 
-    await app.listen(process.env.BACKEND_PORT);
+    await app.listen(parseInt(process.env.BACKEND_PORT || '3007', 10));
     console.log('Application démarrée sur http://localhost:3007');
 }
 bootstrap();
