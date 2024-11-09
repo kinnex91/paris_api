@@ -3,6 +3,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../../entities/paris/v1/User';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UserService {
@@ -11,16 +12,29 @@ export class UserService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  // Créer un utilisateur
-  async createUser(username: string, password: string, email: string): Promise<User> {
-    const user = this.userRepository.create({
-      username,
-      password,
-      email,
-      hashGuidValidatedEmail: this.generateGuid(),
-    });
-    return this.userRepository.save(user);
+  // créer un utilisateur
+   async createUser(email: string, password: string): Promise<User> {
+  // Vérifier si l'utilisateur existe déjà
+  const existingUser = await this.userRepository.findOne({ where: { email } });
+  if (existingUser) {
+    throw new Error('Un utilisateur avec cet email existe déjà.');
   }
+
+  // Hacher le mot de passe
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  // Générer un token de vérification
+  const emailVerificationToken = this.generateGuid();
+
+  // Créer l'utilisateur
+  const user = this.userRepository.create({
+    email,
+    password: hashedPassword,
+    emailVerificationToken,
+  });
+
+  return this.userRepository.save(user);
+}
 
   // Générer un GUID pour valider l'email
   private generateGuid(): string {

@@ -17,7 +17,7 @@ export class User {
   email: string;
 
   @Column({ nullable: true })
-  hashGuidValidatedEmail: string;
+  isEmailVerified: boolean;
 
   @Column({ default: false })
   isValidated: boolean;
@@ -27,6 +27,10 @@ export class User {
 
   @Column({ default: 0 })
   totalPoints: number;
+
+  @Column({ nullable: true })
+  emailVerificationToken: string;
+  
 
   @OneToMany(() => Bet, (bet) => bet.user)
   bets: Bet[];

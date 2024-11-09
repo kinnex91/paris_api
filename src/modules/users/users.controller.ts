@@ -14,7 +14,7 @@ export class UserController {
     @Body('password') password: string,
     @Body('email') email: string,
   ): Promise<User> {
-    return this.userService.createUser(username, password, email);
+    return this.userService.createUser(email, password);
   }
 
   // Récupérer tous les utilisateurs

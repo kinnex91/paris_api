@@ -1,8 +1,9 @@
-// src/app.module.ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
+import { JwtModule } from '@nestjs/jwt';
 
+import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { TournamentsModule } from './modules/tournaments/tournaments.module';
 import { ChampionshipDaysModule } from './modules/championshipDays/championshipDays.module';
@@ -12,30 +13,25 @@ import { ConfigurationsModule } from './modules/configurations/configurations.mo
 
 @Module({
   imports: [
-  
-    // Charger les variables d'environnement depuis le fichier .env
     ConfigModule.forRoot({
-      isGlobal: true, // Rendre le module Config accessible partout
+      isGlobal: true,
     }),
-	
-	
-    // Configuration de la connexion à la base de données
     TypeOrmModule.forRoot({
-      type: 'mysql', // Type de base de données (ex: postgres, sqlite, etc.)
-	  
-	  host: process.env.DB_HOST,
-	  port: parseInt(process.env.DB_PORT || '3306', 10),
+      type: 'mysql',
+      host: process.env.DB_HOST,
+      port: parseInt(process.env.DB_PORT || '3306', 10),
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_DATABASE,
-	  
-	  
-      entities: [__dirname + '/entities/paris/v1/*.{ts,js}'], // Chemin vers les entités
-      synchronize: true, // Synchroniser les entités avec la base (désactiver en production)
+      entities: [__dirname + '/**/**/*.entity.{ts,js}'],
+      synchronize: true,
     }),
-
-    // Importation des modules
+    JwtModule.register({
+      secret: process.env.JWT_SECRET || 'defaultSecretKey',
+      signOptions: { expiresIn: '1h' },
+    }),
     UsersModule,
+    AuthModule,
     TournamentsModule,
     ChampionshipDaysModule,
     MatchesModule,
