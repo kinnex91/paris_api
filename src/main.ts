@@ -13,7 +13,7 @@ async function bootstrap() {
   });
 
 
-    await app.listen(3007);
+    await app.listen(process.env.BACKEND_PORT);
     console.log('Application démarrée sur http://localhost:3007');
 }
 bootstrap();
