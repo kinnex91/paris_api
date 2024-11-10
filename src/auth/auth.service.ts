@@ -31,7 +31,8 @@ export class AuthService {
 
         // Vérification de l'email
         if (!isEmail(email)) {
-            throw new BadRequestException('Invalid email format');
+            console.log('Invalid email');
+            throw new BadRequestException('Invalid email format -->'+email);
         }
 
         // Vérifier si l'utilisateur existe déjà
@@ -66,23 +67,23 @@ export class AuthService {
     // Méthode pour envoyer l'email de validation
     async sendVerificationEmail(email: string, token: string): Promise<void> {
         const transporter = nodemailer.createTransport({
-            host: 'mail.krissclotilde.com',
+            host: 'ssl0.ovh.net',
             port: 465,
             secure: true, // Utiliser SSL/TLS
             auth: {
-                user: 'noreply_justerecipes@krissclotilde.com',
+                user: 'noreply@devforever.ovh',
                 pass: ""+process.env.MAIL, // Mot de passe de votre compte
             },
-            tls: {
+            tls: {  
                 rejectUnauthorized: false, // Ignore les erreurs de certificat
             },
         });
 
 
-        const verificationUrl = `https://www.krisscode.fr/recette/auth/verify-email?token=${token}`;
+            const verificationUrl = `https://concours-pronostics.devforever.ovh/verifyEmail?token=${token}`;
 
         const mailOptions = {
-            from: 'noreply_justerecipes@krissclotilde.com',
+            from: 'noreply@devforever.ovh',
             to: email,
             subject: 'Email Verification',
             text: `Please verify your email by clicking on the following link: ${verificationUrl}`,
