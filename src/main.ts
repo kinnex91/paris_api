@@ -1,21 +1,27 @@
-// src/main.ts
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 
+
+
 async function bootstrap() {
-    const app = await NestFactory.create(AppModule);
-
-
-    
-     // Activer CORS
-  app.enableCors({
-    origin: '*',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true,
+  const app = await NestFactory.create(AppModule, {
+    logger: console,
   });
 
 
-    await app.listen(parseInt(process.env.BACKEND_PORT || '15004', 10));
-    console.log('Application démarrée sur http://localhost:3007');
+  app.enableCors({
+    allowedHeaders: '*',
+    origin: '*',
+    credentials: true,
+  });
+
+  // Configurer CORS
+  app.enableCors({
+    origin: ['http://localhost:15003', 'http://localhost:15004','http://localhost:3007','http://localhost:15004/'],
+    methods: 'GET,POST,PUT,DELETE',
+    allowedHeaders: 'Content-Type,Authorization',
+  });
+
+  await app.listen(3007);
 }
 bootstrap();

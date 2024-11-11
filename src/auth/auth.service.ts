@@ -84,18 +84,23 @@ export class AuthService {
         if (recentUsers.length < 2) return true;
 
         // Vérifier si les deux dernières inscriptions se sont faites en moins de 5 secondes
-        const [lastUser, secondLastUser] = recentUsers;
-        if (now - lastUser.inscriptionDateTimeInLong < 5 && now - secondLastUser.inscriptionDateTimeInLong < 5) {
+        const [theUser, lastUser, secondLastUser] = recentUsers;
+        if (now - lastUser.inscriptionDateTimeInLong < 31 && now - secondLastUser.inscriptionDateTimeInLong < 61) {
             console.log('#SecurityHackingTriggered# Bloqué: Les deux dernières inscriptions se sont faites en moins de 5 secondes');
             return false;
+        }else{
+            console.log('#SecurityHackingTriggered#debug#'+(now - lastUser.inscriptionDateTimeInLong));
+            console.log('#SecurityHackingTriggered#debug#'+(now - secondLastUser.inscriptionDateTimeInLong));
         }
 
-        // Vérifier si les 5 dernières inscriptions se sont faites en moins d'une minute
+        // -de 10 seconde pour le dernier user ?
         if (recentUsers.length === 5) {
-            const fifthLastUser = recentUsers[4];
-            if (now - fifthLastUser.inscriptionDateTimeInLong < 60) {
+            const fifthLastUser = recentUsers[3];
+            if (now - fifthLastUser.inscriptionDateTimeInLong < 10) {
                 console.log('#SecurityHackingTriggered# Bloqué: Les 5 dernières inscriptions se sont faites en moins d\'une minute');
                 return false;
+            }else{
+                console.log('#SecurityHackingTriggered#debug#'+(now - fifthLastUser.inscriptionDateTimeInLong));
             }
         }
 
