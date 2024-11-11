@@ -3,17 +3,18 @@ import {
     ConflictException,
     UnauthorizedException,
     NotFoundException,
-    BadRequestException
+    BadRequestException,
+    ServiceUnavailableException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from '../entities/paris/v1//User';
+import { User } from '../entities/paris/v1/User';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
-import { isEmail } from "class-validator";
+import { isEmail } from 'class-validator';
 import * as nodemailer from 'nodemailer';
 import { v4 as uuidv4 } from 'uuid';
-import * as process from "process";
+import * as process from 'process';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
@@ -32,7 +33,7 @@ export class AuthService {
         // Vérification de l'email
         if (!isEmail(email)) {
             console.log('Invalid email');
-            throw new BadRequestException('Invalid email format -->'+email);
+            throw new BadRequestException('Invalid email format -->' + email);
         }
 
         // Vérifier si l'utilisateur existe déjà
@@ -41,18 +42,24 @@ export class AuthService {
             throw new ConflictException('Email already exists');
         }
 
+        // Vérifier les restrictions d'envoi d'email
+        const canSendEmail = await this.checkEmailRateLimit();
+        if (!canSendEmail) {
+            throw new ServiceUnavailableException('Too many registrations. Please try again later.');
+        }
+
         // Hash du mot de passe
         const hashedPassword = await this.hashPassword(password);
 
         // Générer un token de validation par email
         const emailVerificationToken = uuidv4();
 
-        // Création d'un nouvel utilisateur
+        // Création d'un nouvel utilisateur avec la date d'inscription en secondes
         const newUser = this.userRepository.create({
             email,
             password: hashedPassword,
             emailVerificationToken,
-            isEmailVerified: false, // Ajouter un champ pour suivre la vérification de l'email
+            isEmailVerified: false,
         });
 
         // Sauvegarde de l'utilisateur en base de données
@@ -64,23 +71,53 @@ export class AuthService {
         return savedUser;
     }
 
+    // Vérifier les limites de temps d'inscription pour limiter l'envoi d'emails
+    private async checkEmailRateLimit(): Promise<boolean> {
+        const now = Math.floor(Date.now() / 1000);
+
+        // Récupérer les 5 dernières inscriptions
+        const recentUsers = await this.userRepository.find({
+            order: { inscriptionDateTimeInLong: 'DESC' },
+            take: 5,
+        });
+
+        if (recentUsers.length < 2) return true;
+
+        // Vérifier si les deux dernières inscriptions se sont faites en moins de 5 secondes
+        const [lastUser, secondLastUser] = recentUsers;
+        if (now - lastUser.inscriptionDateTimeInLong < 5 && now - secondLastUser.inscriptionDateTimeInLong < 5) {
+            console.log('#SecurityHackingTriggered# Bloqué: Les deux dernières inscriptions se sont faites en moins de 5 secondes');
+            return false;
+        }
+
+        // Vérifier si les 5 dernières inscriptions se sont faites en moins d'une minute
+        if (recentUsers.length === 5) {
+            const fifthLastUser = recentUsers[4];
+            if (now - fifthLastUser.inscriptionDateTimeInLong < 60) {
+                console.log('#SecurityHackingTriggered# Bloqué: Les 5 dernières inscriptions se sont faites en moins d\'une minute');
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     // Méthode pour envoyer l'email de validation
     async sendVerificationEmail(email: string, token: string): Promise<void> {
         const transporter = nodemailer.createTransport({
             host: 'ssl0.ovh.net',
             port: 465,
-            secure: true, // Utiliser SSL/TLS
+            secure: true,
             auth: {
                 user: 'noreply@devforever.ovh',
-                pass: ""+process.env.MAIL, // Mot de passe de votre compte
+                pass: "" + process.env.MAIL,
             },
-            tls: {  
-                rejectUnauthorized: false, // Ignore les erreurs de certificat
+            tls: {
+                rejectUnauthorized: false,
             },
         });
 
-
-            const verificationUrl = `https://concours-pronostics.devforever.ovh/verifyEmail?token=${token}`;
+        const verificationUrl = `https://concours-pronostics.devforever.ovh/verifyEmail?token=${token}`;
 
         const mailOptions = {
             from: 'noreply@devforever.ovh',
@@ -91,7 +128,7 @@ export class AuthService {
 
         await transporter.sendMail(mailOptions);
     }
-
+    
     // Méthode pour vérifier l'email
     async verifyEmail(token: string): Promise<void> {
         const user = await this.userRepository.findOne({ where: { emailVerificationToken: token } });
