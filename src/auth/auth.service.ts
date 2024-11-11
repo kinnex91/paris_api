@@ -28,6 +28,9 @@ export class AuthService {
 
     // Méthode d'enregistrement (register)
     async register(createUserDto: User): Promise<User> {
+
+        console.log('#debug#start register');
+        
         const { email, password } = createUserDto;
 
         // Vérification de l'email
