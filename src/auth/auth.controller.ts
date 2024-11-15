@@ -23,8 +23,12 @@ export class AuthController {
     }
 
     @Post('login')
-    login(@Body() body: { username: string; password: string }) {
-        return this.authService.login(body.username, body.password);
+    login(@Body() body: { email: string; password: string }) {
+        if(body.email == null || body.email ==='undefined' || body.email ==='')
+            throw new BadRequestException('username is required');
+
+        console.log(body.email + ' try to log on');
+        return this.authService.login(body.email, body.password);
     }
 
     @Get('logout')

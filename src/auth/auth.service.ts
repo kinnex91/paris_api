@@ -211,11 +211,17 @@ export class AuthService {
 
     // Méthode de connexion (login)
     async login(email: string, password: string) {
-        const user = await this.userRepository.findOne({ where: { email } });
+        console.log("Email reçu :", email);
+        const user = await this.userRepository.findOneBy({ email });
+
+        console.log("Utilisateur trouvé :", user);
+
+
         if (!user) {
             throw new NotFoundException('User not found');
         }
 
+        console.log("#login services : User founded in databse " + user.email);
         // Vérification si l'email a été confirmé
         if (!user.isEmailVerified) {
             throw new UnauthorizedException('Email not verified');
