@@ -26,6 +26,29 @@ export class AuthService {
         private readonly jwtService: JwtService,
     ) {}
 
+    async isLoggedIn(authorizationHeader: string): Promise<{ isLoggedIn: boolean }> {
+        if (!authorizationHeader) {
+          return { isLoggedIn: false };
+        }
+      
+        const token = authorizationHeader.replace('Bearer ', '');
+      
+        try {
+          await this.jwtService.verifyAsync(token, {
+            secret: process.env.SECRET,
+          });
+          return { isLoggedIn: true };
+        } catch (error) {
+          return { isLoggedIn: false };
+        }
+      }
+
+      
+    async checkIfAdmin(authorizationHeader: string): Promise<{ isAdmin: boolean }> {
+        const user = await this.getUserFromToken(authorizationHeader);
+        return { isAdmin: user.isAdmin };
+    }
+
     // Méthode d'enregistrement (register)
     async register(createUserDto: User): Promise<User> {
 
