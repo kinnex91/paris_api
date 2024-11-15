@@ -252,6 +252,7 @@ export class AuthService {
 
             return user;
         } catch (error) {
+            console.log(error.message);
             throw new UnauthorizedException('Token JWT invalide ou expiré');
         }
     }
