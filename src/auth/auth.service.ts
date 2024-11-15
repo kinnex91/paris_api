@@ -42,7 +42,22 @@ export class AuthService {
         // Vérifier si l'utilisateur existe déjà
         const existingUser = await this.userRepository.findOne({ where: { email } });
         if (existingUser) {
-            throw new ConflictException('Email already exists');
+
+            if(!existingUser.isEmailVerified)
+            {
+                //FEATURES-001-IMPROVE_REGISTERED
+                //l'utilisateur n'a pas vérifié son mail, on regarde si le token date de plus d'une heure si oui on renvoie un nouveau token -->
+                existingUser.emailVerificationToken = uuidv4();
+                const savedUser = await this.userRepository.save(existingUser);
+                 // Envoyer l'email de validation
+                 await this.sendVerificationEmail(email, existingUser.emailVerificationToken);
+
+                 return savedUser;
+
+
+            }
+            //On va renvoyer un token par mail du coup
+            throw new ConflictException('Error-601');
         }
 
         // Vérifier les restrictions d'envoi d'email
@@ -113,22 +128,22 @@ export class AuthService {
     // Méthode pour envoyer l'email de validation
     async sendVerificationEmail(email: string, token: string): Promise<void> {
         const transporter = nodemailer.createTransport({
-            host: 'ssl0.ovh.net',
-            port: 465,
+            host: process.env.MAIL_HOST,
+            port: process.env.MAIL_IMAP_PORT,
             secure: true,
             auth: {
-                user: 'noreply@devforever.ovh',
-                pass: "" + process.env.MAIL,
+                user: process.env.MAIL_NOREPLY,
+                pass: "j" + process.env.MAIL_PASSWORD,
             },
             tls: {
                 rejectUnauthorized: false,
             },
         });
 
-        const verificationUrl = `https://concours-pronostics.devforever.ovh/verifyEmail?token=${token}`;
+        const verificationUrl = process.env.FRONTEND_URL + `/verifyEmail?token=${token}`;
 
         const mailOptions = {
-            from: 'noreply@devforever.ovh',
+            from: process.env.MAIL_NOREPLY,
             to: email,
             subject: 'Email Verification',
             text: `Please verify your email by clicking on the following link: ${verificationUrl}`,

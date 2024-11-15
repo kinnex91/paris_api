@@ -1,0 +1,2 @@
+Features ID;Projet;Classe;Description
+FEATURES-001-IMPROVE_REGISTERED;backend;auth.service;//l'utilisateur n'a pas vérifié son mail, on regarde si le token date de plus d'une heure si oui on renvoie un nouveau token -->

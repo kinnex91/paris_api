@@ -1,0 +1,2 @@
+code;short code for frontend reading;Developer line class;Impact security;Long message;Developper thing
+601;Error-601;;API Back auth.service.ts;@SecurityTrue;Une erreur 601 est survenue;L'utilisateur essais de s'enregister mais son email existe déjà en base --> Nous régénérons un token et lui renvois par mail
