@@ -6,15 +6,15 @@ dotenv.config();
 
 @Controller('auth')
 export class AuthController {
-    constructor(private authService: AuthService) {}
+    constructor(private authService: AuthService) { }
 
     @Get('is-logged-in')
-async isLoggedIn(@Headers('Authorization') authorizationHeader: string) {
-  if (!authorizationHeader) {
-    return { isLoggedIn: false };
-  }
-  return await this.authService.isLoggedIn(authorizationHeader);
-}
+    async isLoggedIn(@Headers('Authorization') authorizationHeader: string) {
+        if (!authorizationHeader) {
+            return { isLoggedIn: false };
+        }
+        return await this.authService.isLoggedIn(authorizationHeader);
+    }
 
 
     @Post('register')
@@ -27,8 +27,15 @@ async isLoggedIn(@Headers('Authorization') authorizationHeader: string) {
         return this.authService.login(body.username, body.password);
     }
 
+    @Get('logout')
+    logout(@Headers('Authorization') authorizationHeader: string) {
+
+        const msgToReturn = this.authService.logout(authorizationHeader);
+        return { message: msgToReturn };
+    }
+
     @Get('me')
-    createRecipe(@Headers('Authorization') authorizationHeader: string) {
+    getMe(@Headers('Authorization') authorizationHeader: string) {
         return this.authService.getUserFromToken(authorizationHeader);
     }
 

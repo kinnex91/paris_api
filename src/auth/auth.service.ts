@@ -20,40 +20,61 @@ dotenv.config();
 
 @Injectable()
 export class AuthService {
+
     constructor(
         @InjectRepository(User)
         private readonly userRepository: Repository<User>,
         private readonly jwtService: JwtService,
-    ) {}
+    ) { }
+
+
+    async logout(authorizationHeader: string): Promise<{ message: String }> {
+        try {
+            const user = await this.getUserFromToken(authorizationHeader);
+
+            //FEATURES-XXX - tracer heure de deconnexion. + sur session expirée server ou webclient
+            // Récupère l'utilisateur à partir du token
+    
+            return { message: `${user.email}ask for logout` };
+        } catch (error) {
+            return { message: `eroor in logout` };
+        }
+      
+    }
+
+
+
 
     async isLoggedIn(authorizationHeader: string): Promise<{ isLoggedIn: boolean }> {
         if (!authorizationHeader) {
-          return { isLoggedIn: false };
+            return { isLoggedIn: false };
         }
-      
-        const token = authorizationHeader.replace('Bearer ', '');
-      
-        try {
-          await this.jwtService.verifyAsync(token, {
-            secret: process.env.SECRET,
-          });
-          return { isLoggedIn: true };
-        } catch (error) {
-          return { isLoggedIn: false };
-        }
-      }
 
-      
+        const token = authorizationHeader.replace('Bearer ', '');
+
+        try {
+            await this.jwtService.verifyAsync(token, {
+                secret: process.env.SECRET,
+            });
+            return { isLoggedIn: true };
+        } catch (error) {
+            return { isLoggedIn: false };
+        }
+    }
+
+
     async checkIfAdmin(authorizationHeader: string): Promise<{ isAdmin: boolean }> {
         const user = await this.getUserFromToken(authorizationHeader);
         return { isAdmin: user.isAdmin };
     }
 
+
+
     // Méthode d'enregistrement (register)
     async register(createUserDto: User): Promise<User> {
 
         console.log('#debug#start register');
-        
+
         const { email, password } = createUserDto;
 
         // Vérification de l'email
@@ -66,16 +87,15 @@ export class AuthService {
         const existingUser = await this.userRepository.findOne({ where: { email } });
         if (existingUser) {
 
-            if(!existingUser.isEmailVerified)
-            {
+            if (!existingUser.isEmailVerified) {
                 //FEATURES-001-IMPROVE_REGISTERED
                 //l'utilisateur n'a pas vérifié son mail, on regarde si le token date de plus d'une heure si oui on renvoie un nouveau token -->
                 existingUser.emailVerificationToken = uuidv4();
                 const savedUser = await this.userRepository.save(existingUser);
-                 // Envoyer l'email de validation
-                 await this.sendVerificationEmail(email, existingUser.emailVerificationToken);
+                // Envoyer l'email de validation
+                await this.sendVerificationEmail(email, existingUser.emailVerificationToken);
 
-                 return savedUser;
+                return savedUser;
 
 
             }
@@ -129,9 +149,9 @@ export class AuthService {
         if (now - lastUser.inscriptionDateTimeInLong < 31 && now - secondLastUser.inscriptionDateTimeInLong < 61) {
             console.log('#SecurityHackingTriggered# Bloqué: Les deux dernières inscriptions se sont faites en moins de 5 secondes');
             return false;
-        }else{
-            console.log('#SecurityHackingTriggered#debug#'+(now - lastUser.inscriptionDateTimeInLong));
-            console.log('#SecurityHackingTriggered#debug#'+(now - secondLastUser.inscriptionDateTimeInLong));
+        } else {
+            console.log('#SecurityHackingTriggered#debug#' + (now - lastUser.inscriptionDateTimeInLong));
+            console.log('#SecurityHackingTriggered#debug#' + (now - secondLastUser.inscriptionDateTimeInLong));
         }
 
         // -de 10 seconde pour le dernier user ?
@@ -140,8 +160,8 @@ export class AuthService {
             if (now - fifthLastUser.inscriptionDateTimeInLong < 10) {
                 console.log('#SecurityHackingTriggered# Bloqué: Les 5 dernières inscriptions se sont faites en moins d\'une minute');
                 return false;
-            }else{
-                console.log('#SecurityHackingTriggered#debug#'+(now - fifthLastUser.inscriptionDateTimeInLong));
+            } else {
+                console.log('#SecurityHackingTriggered#debug#' + (now - fifthLastUser.inscriptionDateTimeInLong));
             }
         }
 
@@ -174,7 +194,7 @@ export class AuthService {
 
         await transporter.sendMail(mailOptions);
     }
-    
+
     // Méthode pour vérifier l'email
     async verifyEmail(token: string): Promise<void> {
         const user = await this.userRepository.findOne({ where: { emailVerificationToken: token } });
@@ -210,7 +230,7 @@ export class AuthService {
         // Génération du JWT
         const jwt = await this.jwtService.signAsync(
             { id: user.id },
-            { secret: ""+process.env.SECRET }
+            { secret: "" + process.env.SECRET }
         );
 
         return { jwt };
@@ -237,7 +257,7 @@ export class AuthService {
         try {
             // Vérification du token JWT
             const decodedToken = await this.jwtService.verifyAsync(token, {
-                secret: ""+process.env.SECRET, // Utiliser la clé secrète correcte
+                secret: "" + process.env.SECRET, // Utiliser la clé secrète correcte
             });
 
             // Extraction de l'ID de l'utilisateur à partir du token

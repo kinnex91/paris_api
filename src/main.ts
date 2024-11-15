@@ -9,6 +9,7 @@ async function bootstrap() {
   // Configurer CORS pour autoriser uniquement les domaines spécifiés
   app.enableCors({
     origin: [
+      'http://localhost:15002',
       'http://localhost:15003',
       'http://localhost:15004',
       'http://localhost:3007',
