@@ -5,6 +5,8 @@ import {
     NotFoundException,
     BadRequestException,
     ServiceUnavailableException,
+    HttpException,
+    HttpStatus,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -16,6 +18,8 @@ import * as nodemailer from 'nodemailer';
 import { v4 as uuidv4 } from 'uuid';
 import * as process from 'process';
 import * as dotenv from 'dotenv';
+import { LoggerUtils } from '../utils/LoggerUtils';
+
 dotenv.config();
 
 @Injectable()
@@ -34,12 +38,12 @@ export class AuthService {
 
             //FEATURES-XXX - tracer heure de deconnexion. + sur session expirée server ou webclient
             // Récupère l'utilisateur à partir du token
-    
+
             return { message: `${user.email}ask for logout` };
         } catch (error) {
             return { message: `eroor in logout` };
         }
-      
+
     }
 
 
@@ -68,178 +72,287 @@ export class AuthService {
         return { isAdmin: user.isAdmin };
     }
 
+    // Méthode de connexion (login)
+    async login(email: string, password: string) {
 
+        const methodName = LoggerUtils.getCurrentMethodName(this, this.login);
+
+
+        try {
+            console.log(`## Debug start ${methodName} for ${email}`);
+
+
+            const user = await this.userRepository.findOneBy({ email });
+
+            console.log("Utilisateur trouvé :", user);
+
+
+            if (!user) {
+                throw new NotFoundException('User not found');
+            }
+
+            console.log("#login services : User founded in databse " + user.email);
+            // Vérification si l'email a été confirmé
+            if (!user.isEmailVerified) {
+                throw new UnauthorizedException('Email not verified');
+            }
+
+            // Vérification du mot de passe
+            const isPasswordValid = await this.comparePasswords(password, user.password);
+            if (!isPasswordValid) {
+                throw new UnauthorizedException('Invalid password');
+            }
+
+            // Génération du JWT
+            const jwt = await this.jwtService.signAsync(
+                { id: user.id },
+                { secret: "" + process.env.SECRET }
+            );
+
+            return { jwt };
+        } catch (error) {
+            console.log(`### Fatal error in ${methodName}`);
+            console.log(error);
+            throw new HttpException('message', HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
+
+
+    }
 
     // Méthode d'enregistrement (register)
     async register(createUserDto: User): Promise<User> {
 
-        console.log('#debug#start register');
-
-        const { email, password } = createUserDto;
-
-        // Vérification de l'email
-        if (!isEmail(email)) {
-            console.log('Invalid email');
-            throw new BadRequestException('Invalid email format -->' + email);
-        }
-
-        // Vérifier si l'utilisateur existe déjà
-        const existingUser = await this.userRepository.findOne({ where: { email } });
-        if (existingUser) {
-
-            if (!existingUser.isEmailVerified) {
-                //FEATURES-001-IMPROVE_REGISTERED
-                //l'utilisateur n'a pas vérifié son mail, on regarde si le token date de plus d'une heure si oui on renvoie un nouveau token -->
-                existingUser.emailVerificationToken = uuidv4();
-                const savedUser = await this.userRepository.save(existingUser);
-                // Envoyer l'email de validation
-                await this.sendVerificationEmail(email, existingUser.emailVerificationToken);
-
-                return savedUser;
+        const methodName = LoggerUtils.getCurrentMethodName(this, this.register);
 
 
+        try {
+            const { email, password } = createUserDto;
+            console.log(`## Debug start ${methodName} for ${email}`);
+
+
+
+            // Vérification de l'email
+            if (!isEmail(email)) {
+                console.log('Invalid email');
+                throw new BadRequestException('Invalid email format -->' + email);
             }
-            //On va renvoyer un token par mail du coup
-            throw new ConflictException('Error-601');
+
+            // Vérifier si l'utilisateur existe déjà
+            const existingUser = await this.userRepository.findOne({ where: { email } });
+            if (existingUser) {
+
+                if (!existingUser.isEmailVerified) {
+                    //FEATURES-001-IMPROVE_REGISTERED
+                    //l'utilisateur n'a pas vérifié son mail, on regarde si le token date de plus d'une heure si oui on renvoie un nouveau token -->
+                    existingUser.emailVerificationToken = uuidv4();
+                    const savedUser = await this.userRepository.save(existingUser);
+                    // Envoyer l'email de validation
+                    await this.sendVerificationEmail(email, existingUser.emailVerificationToken);
+
+                    return savedUser;
+
+
+                }
+                //On va renvoyer un token par mail du coup
+                throw new ConflictException('Error-601');
+            }
+
+            // Vérifier les restrictions d'envoi d'email
+            const canSendEmail = await this.checkEmailRateLimit();
+            if (!canSendEmail) {
+                throw new ServiceUnavailableException('Too many registrations. Please try again later.');
+            }
+
+            // Hash du mot de passe
+            const hashedPassword = await this.hashPassword(password);
+
+            // Générer un token de validation par email
+            const emailVerificationToken = uuidv4();
+
+            // Création d'un nouvel utilisateur avec la date d'inscription en secondes
+            const newUser = this.userRepository.create({
+                email,
+                password: hashedPassword,
+                emailVerificationToken,
+                isEmailVerified: false,
+            });
+
+            // Sauvegarde de l'utilisateur en base de données
+            const savedUser = await this.userRepository.save(newUser);
+
+            // Envoyer l'email de validation
+            await this.sendVerificationEmail(email, emailVerificationToken);
+
+            return savedUser;
+        } catch (error) {
+            console.log(`### Fatal error in ${methodName}`);
+            console.log(error);
+            throw new HttpException('message', HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
-        // Vérifier les restrictions d'envoi d'email
-        const canSendEmail = await this.checkEmailRateLimit();
-        if (!canSendEmail) {
-            throw new ServiceUnavailableException('Too many registrations. Please try again later.');
-        }
 
-        // Hash du mot de passe
-        const hashedPassword = await this.hashPassword(password);
 
-        // Générer un token de validation par email
-        const emailVerificationToken = uuidv4();
 
-        // Création d'un nouvel utilisateur avec la date d'inscription en secondes
-        const newUser = this.userRepository.create({
-            email,
-            password: hashedPassword,
-            emailVerificationToken,
-            isEmailVerified: false,
-        });
-
-        // Sauvegarde de l'utilisateur en base de données
-        const savedUser = await this.userRepository.save(newUser);
-
-        // Envoyer l'email de validation
-        await this.sendVerificationEmail(email, emailVerificationToken);
-
-        return savedUser;
     }
 
     // Vérifier les limites de temps d'inscription pour limiter l'envoi d'emails
     private async checkEmailRateLimit(): Promise<boolean> {
-        const now = Math.floor(Date.now() / 1000);
 
-        // Récupérer les 5 dernières inscriptions
-        const recentUsers = await this.userRepository.find({
-            order: { inscriptionDateTimeInLong: 'DESC' },
-            take: 5,
-        });
+        const methodName = LoggerUtils.getCurrentMethodName(this, this.checkEmailRateLimit);
 
-        if (recentUsers.length < 2) return true;
+        try {
 
-        // Vérifier si les deux dernières inscriptions se sont faites en moins de 5 secondes
-        const [theUser, lastUser, secondLastUser] = recentUsers;
-        if (now - lastUser.inscriptionDateTimeInLong < 31 && now - secondLastUser.inscriptionDateTimeInLong < 61) {
-            console.log('#SecurityHackingTriggered# Bloqué: Les deux dernières inscriptions se sont faites en moins de 5 secondes');
-            return false;
-        } else {
-            console.log('#SecurityHackingTriggered#debug#' + (now - lastUser.inscriptionDateTimeInLong));
-            console.log('#SecurityHackingTriggered#debug#' + (now - secondLastUser.inscriptionDateTimeInLong));
-        }
+            console.log(`## Debug start ${methodName}`);
 
-        // -de 10 seconde pour le dernier user ?
-        if (recentUsers.length === 5) {
-            const fifthLastUser = recentUsers[3];
-            if (now - fifthLastUser.inscriptionDateTimeInLong < 10) {
-                console.log('#SecurityHackingTriggered# Bloqué: Les 5 dernières inscriptions se sont faites en moins d\'une minute');
+
+            const now = Math.floor(Date.now() / 1000);
+
+            // Récupérer les 5 dernières inscriptions
+            const recentUsers = await this.userRepository.find({
+                order: { inscriptionDateTimeInLong: 'DESC' },
+                take: 5,
+            });
+
+            if (recentUsers.length < 2) return true;
+
+            // Vérifier si les deux dernières inscriptions se sont faites en moins de 5 secondes
+            const [theUser, lastUser, secondLastUser] = recentUsers;
+            if (now - lastUser.inscriptionDateTimeInLong < 31 && now - secondLastUser.inscriptionDateTimeInLong < 61) {
+                console.log('#SecurityHackingTriggered# Bloqué: Les deux dernières inscriptions se sont faites en moins de 5 secondes');
                 return false;
             } else {
-                console.log('#SecurityHackingTriggered#debug#' + (now - fifthLastUser.inscriptionDateTimeInLong));
+                console.log('#SecurityHackingTriggered#debug#' + (now - lastUser.inscriptionDateTimeInLong));
+                console.log('#SecurityHackingTriggered#debug#' + (now - secondLastUser.inscriptionDateTimeInLong));
             }
-        }
 
-        return true;
+            // -de 10 seconde pour le dernier user ?
+            if (recentUsers.length === 5) {
+                const fifthLastUser = recentUsers[3];
+                if (now - fifthLastUser.inscriptionDateTimeInLong < 10) {
+                    console.log('#SecurityHackingTriggered# Bloqué: Les 5 dernières inscriptions se sont faites en moins d\'une minute');
+                    return false;
+                } else {
+                    console.log('#SecurityHackingTriggered#debug#' + (now - fifthLastUser.inscriptionDateTimeInLong));
+                }
+            }
+
+            return true;
+
+        } catch (error) {
+            console.log(`## Error in ${methodName}`);
+            console.log(error);
+            return true;
+
+        }
     }
 
     // Méthode pour envoyer l'email de validation
     async sendVerificationEmail(email: string, token: string): Promise<void> {
-        const transporter = nodemailer.createTransport({
-            host: process.env.MAIL_HOST,
-            port: process.env.MAIL_IMAP_PORT,
-            secure: true,
-            auth: {
-                user: process.env.MAIL_NOREPLY,
-                pass: "j" + process.env.MAIL_PASSWORD,
-            },
-            tls: {
-                rejectUnauthorized: false,
-            },
-        });
 
-        const verificationUrl = process.env.FRONTEND_URL + `/verifyEmail?token=${token}`;
+        const methodName = LoggerUtils.getCurrentMethodName(this, this.sendVerificationEmail);
 
-        const mailOptions = {
-            from: process.env.MAIL_NOREPLY,
-            to: email,
-            subject: 'Email Verification',
-            text: `Please verify your email by clicking on the following link: ${verificationUrl}`,
-        };
+        try {
 
-        await transporter.sendMail(mailOptions);
+            console.log(`## Debug start ${methodName}`);
+
+
+
+            const transporter = nodemailer.createTransport({
+                host: process.env.MAIL_HOST,
+                port: process.env.MAIL_IMAP_PORT,
+                secure: true,
+                auth: {
+                    user: process.env.MAIL_NOREPLY,
+                    pass: "j" + process.env.MAIL_PASSWORD,
+                },
+                tls: {
+                    rejectUnauthorized: false,
+                },
+            });
+
+            const verificationUrl = process.env.FRONTEND_URL + `/verifyEmail?token=${token}`;
+
+            const mailOptions = {
+                from: process.env.MAIL_NOREPLY,
+                to: email,
+                subject: 'Vérification de l\'email / Email Verification',
+                html: `
+                    <div style="font-family: Arial, sans-serif; font-size: 16px; color: #333;">
+                        
+                        <!-- Bloc en français -->
+                        <h3>Vérification de votre adresse email</h3>
+                        <p>Bonjour,</p>
+                        <p>Merci de vous être inscrit. Veuillez vérifier votre adresse email en cliquant sur le lien ci-dessous :</p>
+                        <a href="${verificationUrl}" 
+                           style="display: inline-block; background-color: #007bff; color: white; text-decoration: none; padding: 10px 15px; border-radius: 5px;">
+                            Vérifier mon adresse email
+                        </a>
+                        <p>Si le bouton ne fonctionne pas, vous pouvez copier et coller le lien suivant dans votre navigateur :</p>
+                        <p><a href="${verificationUrl}" style="color: #007bff;">${verificationUrl}</a></p>
+                        
+                        <hr style="margin: 20px 0;">
+                        
+                        <!-- Bloc en anglais -->
+                        <h3>Email Verification</h3>
+                        <p>Hello,</p>
+                        <p>Thank you for signing up. Please verify your email address by clicking on the link below:</p>
+                        <a href="${verificationUrl}" 
+                           style="display: inline-block; background-color: #007bff; color: white; text-decoration: none; padding: 10px 15px; border-radius: 5px;">
+                            Verify my email address
+                        </a>
+                        <p>If the button does not work, you can copy and paste the following link into your browser:</p>
+                        <p><a href="${verificationUrl}" style="color: #007bff;">${verificationUrl}</a></p>
+                        
+                        <hr style="margin: 20px 0;">
+                        
+                        <!-- Note d'information -->
+                        <p style="font-size: 12px; color: #888;">
+                            Si vous n'avez pas demandé cette inscription, ignorez cet email.<br>
+                            If you did not request this registration, please ignore this email.
+                        </p>
+                    </div>
+                `,
+            };
+            
+
+            await transporter.sendMail(mailOptions);
+
+        } catch (error) {
+            console.log(`### Fatal error in ${methodName}`);
+            console.log(error);
+            throw new HttpException('message', HttpStatus.INTERNAL_SERVER_ERROR);
+
+        }
     }
 
     // Méthode pour vérifier l'email
     async verifyEmail(token: string): Promise<void> {
-        const user = await this.userRepository.findOne({ where: { emailVerificationToken: token } });
 
-        if (!user) {
-            throw new BadRequestException('Invalid or expired verification token');
+        const methodName = LoggerUtils.getCurrentMethodName(this, this.verifyEmail);
+
+        try {
+
+            console.log(`## Debug start ${methodName}`);
+
+
+
+            const user = await this.userRepository.findOne({ where: { emailVerificationToken: token } });
+
+            if (!user) {
+                throw new BadRequestException('Invalid or expired verification token');
+            }
+
+            user.isEmailVerified = true;
+            user.emailVerificationToken = token; // Supprimer le token après la vérification
+
+            await this.userRepository.save(user);
+        } catch (error) {
+            console.log(`### Fatal error in ${methodName}`);
+            console.log(error);
+            throw new HttpException('message', HttpStatus.INTERNAL_SERVER_ERROR);
+
         }
-
-        user.isEmailVerified = true;
-        user.emailVerificationToken = token; // Supprimer le token après la vérification
-
-        await this.userRepository.save(user);
-    }
-
-    // Méthode de connexion (login)
-    async login(email: string, password: string) {
-        console.log("Email reçu :", email);
-        const user = await this.userRepository.findOneBy({ email });
-
-        console.log("Utilisateur trouvé :", user);
-
-
-        if (!user) {
-            throw new NotFoundException('User not found');
-        }
-
-        console.log("#login services : User founded in databse " + user.email);
-        // Vérification si l'email a été confirmé
-        if (!user.isEmailVerified) {
-            throw new UnauthorizedException('Email not verified');
-        }
-
-        // Vérification du mot de passe
-        const isPasswordValid = await this.comparePasswords(password, user.password);
-        if (!isPasswordValid) {
-            throw new UnauthorizedException('Invalid password');
-        }
-
-        // Génération du JWT
-        const jwt = await this.jwtService.signAsync(
-            { id: user.id },
-            { secret: "" + process.env.SECRET }
-        );
-
-        return { jwt };
     }
 
     // Méthodes utilitaires pour hasher et comparer les mots de passe
@@ -282,4 +395,5 @@ export class AuthService {
             throw new UnauthorizedException('Token JWT invalide ou expiré');
         }
     }
+
 }
