@@ -5,7 +5,7 @@ import { JwtModule } from '@nestjs/jwt';
 
 import { AuthModule } from './auth/auth.module';
 
-import { TournamentsModule } from './modules/tournaments/tournaments.module';
+import { TournamentModule } from './modules/tournaments/tournament.module';
 import { ChampionshipDaysModule } from './modules/championshipDays/championshipDays.module';
 import { MatchesModule } from './modules/matches/matches.module';
 import { BetsModule } from './modules/bets/bets.module';
@@ -32,7 +32,7 @@ import { ConfigurationsModule } from './modules/configurations/configurations.mo
     }),
 
     AuthModule,
-    TournamentsModule,
+    TournamentModule,
     ChampionshipDaysModule,
     MatchesModule,
     BetsModule,

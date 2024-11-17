@@ -11,13 +11,19 @@ export class Tournament {
     @Column()
     name: string;
 
-    @Column()
+    @Column({ nullable: true, default:null  })
+    tournamentCategory: string;
+
+    @Column({ nullable: true, default:null  })
     sportCategory: string;
 
-    @Column()
+    @Column({ nullable: true , default:null })
+    tournamentDescription: string;
+
+    @Column({ nullable: true, default:null  })
     startDate: Date;
 
-    @Column()
+    @Column({ nullable: true, default:null  })
     endDate: Date;
 
     @OneToMany(() => ChampionshipDay, (day) => day.tournament)

@@ -14,10 +14,10 @@ export class Match {
     @Column()
     teamB: string;
 
-    @Column({ nullable: true })
+    @Column({ nullable: true , default:null })
     finalScoreA: number;
 
-    @Column({ nullable: true })
+    @Column({ nullable: true, default:null  })
     finalScoreB: number;
 
     @ManyToOne(() => ChampionshipDay, (day) => day.matches)

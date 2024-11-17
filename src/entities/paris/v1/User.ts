@@ -16,7 +16,7 @@ export class User {
   @Column({ unique: true })
   email: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, default:0  })
   isEmailVerified: boolean;
 
   @Column({ default: false })
@@ -28,7 +28,7 @@ export class User {
   @Column({ default: 0 })
   totalPoints: number;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, default:0  })
   emailVerificationToken: string;
   
 
