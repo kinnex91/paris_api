@@ -1,12 +1,14 @@
 import { BadRequestException, Body, Controller, Get, Headers, Post, Query, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { User } from "../entities/paris/v1/User";
+
 import * as dotenv from 'dotenv';
 dotenv.config();
 
 @Controller('auth')
 export class AuthController {
     constructor(private authService: AuthService) { }
+   
 
     @Get('is-logged-in')
     async isLoggedIn(@Headers('Authorization') authorizationHeader: string) {

@@ -14,6 +14,5 @@ export class ChampionshipDay {
     @ManyToOne(() => Tournament, (tournament) => tournament.championshipDays)
     tournament: Tournament;
 
-    @OneToMany(() => Match, (match) => match.championshipDay)
-    matches: Match[];
+  
 }

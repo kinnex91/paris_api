@@ -8,10 +8,10 @@ export class Bet {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column()
+    @Column({ default: 0 })
     predictedScoreA: number;
-
-    @Column()
+    
+    @Column({ default: 0 })
     predictedScoreB: number;
 
     @Column({ default: false })

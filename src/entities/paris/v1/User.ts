@@ -43,4 +43,8 @@ export class User {
   setInscriptionDateTimeInLong() {
     this.inscriptionDateTimeInLong = (Date.now() / 1000); // La date d'inscription en secondes.
   }
+
+    // New column for tracking the last login date
+    @Column({ type: 'timestamp', nullable: true })
+    lastLoginDate: Date | null;
 }

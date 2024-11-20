@@ -2,13 +2,14 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { ChampionshipDay } from './ChampionshipDay';
 import { Configuration } from './Configuration';
+import { Match } from './Match';
 
 @Entity()
 export class Tournament {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column()
+    @Column({unique: true})
     name: string;
 
     @Column({ nullable: true, default:null  })
@@ -31,4 +32,8 @@ export class Tournament {
 
     @OneToMany(() => Configuration, (config) => config.tournament)
     configurations: Configuration[];
+
+    @OneToMany(() => Match, (matchs) => matchs.tournament)
+    matchs: Match[];
+
 }

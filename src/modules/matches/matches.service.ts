@@ -16,7 +16,9 @@ export class MatchesService {
   }
 
   async findAll() {
-    return this.matchRepo.find();
+    return this.matchRepo.find({
+      relations: ['tournament'],
+    });
   }
 
   async findOneById(id: number) {

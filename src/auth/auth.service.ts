@@ -19,6 +19,7 @@ import { v4 as uuidv4 } from 'uuid';
 import * as process from 'process';
 import * as dotenv from 'dotenv';
 import { LoggerUtils } from '../utils/LoggerUtils';
+import * as jwt from 'jsonwebtoken';
 
 dotenv.config();
 
@@ -31,6 +32,22 @@ export class AuthService {
         private readonly jwtService: JwtService,
     ) { }
 
+    private readonly jwtSecret = "" + process.env.SECRET
+    async validateToken(token: string): Promise<User> {
+        try {
+          const decoded = jwt.verify(token, this.jwtSecret) as User; // Cast the token payload to User type
+          return decoded;
+        } catch (err) {
+          try {
+            // Attempt to retrieve the user from the token
+            const user = await this.getUserFromToken(token); // Use await to resolve the Promise
+            console.log(`#debug session expirée pour ${user.email}`);
+            throw new UnauthorizedException('Session expired or invalid token');
+          } catch (innerErr) {
+            throw new UnauthorizedException('Session expired or invalid token');
+          }
+        }
+      }
 
     async logout(authorizationHeader: string): Promise<{ message: String }> {
         try {
@@ -71,54 +88,84 @@ export class AuthService {
         const user = await this.getUserFromToken(authorizationHeader);
         return { isAdmin: user.isAdmin };
     }
-
-    // Méthode de connexion (login)
+   
     async login(email: string, password: string) {
-
         const methodName = LoggerUtils.getCurrentMethodName(this, this.login);
-
-
+      
         try {
-            console.log(`## Debug start ${methodName} for ${email}`);
-
-
-            const user = await this.userRepository.findOneBy({ email });
-
-            console.log("Utilisateur trouvé :", user);
-
-
-            if (!user) {
-                throw new NotFoundException('User not found');
-            }
-
-            console.log("#login services : User founded in databse " + user.email);
-            // Vérification si l'email a été confirmé
-            if (!user.isEmailVerified) {
-                throw new UnauthorizedException('Email not verified');
-            }
-
-            // Vérification du mot de passe
-            const isPasswordValid = await this.comparePasswords(password, user.password);
-            if (!isPasswordValid) {
-                throw new UnauthorizedException('Invalid password');
-            }
-
-            // Génération du JWT
-            const jwt = await this.jwtService.signAsync(
-                { id: user.id },
-                { secret: "" + process.env.SECRET }
-            );
-
-            return { jwt };
+          console.log(`## Debug start ${methodName} for ${email}`);
+      
+          // Search for the user by email
+          const user = await this.userRepository.findOneBy({ email });
+          console.log('Utilisateur trouvé :', user);
+      
+          if (!user) {
+            throw new NotFoundException('User not found');
+          }
+      
+          console.log('#login services : User found in database ' + user.email);
+      
+          // Check if the email is verified
+          if (!user.isEmailVerified) {
+            throw new UnauthorizedException('Email not verified');
+          }
+      
+          // Verify the password
+          const isPasswordValid = await this.comparePasswords(password, user.password);
+          if (!isPasswordValid) {
+            throw new UnauthorizedException('Invalid password');
+          }
+      
+          // Update the last login date
+          user.lastLoginDate = new Date();
+          await this.userRepository.save(user);
+      
+          // Remove the password from the response
+          const { password: _, ...userWithoutPassword } = user;
+      
+          // Generate the JWT
+          const jwt = this.generateToken(user);
+      
+          // Return the JWT and user information
+          return { jwt, user: userWithoutPassword };
         } catch (error) {
-            console.log(`### Fatal error in ${methodName}`);
-            console.log(error);
-            throw new HttpException('message', HttpStatus.INTERNAL_SERVER_ERROR);
+          console.log(`### Fatal error in ${methodName}`);
+          console.log(error);
+          throw new HttpException('message', HttpStatus.INTERNAL_SERVER_ERROR);
         }
+      }
 
+    generateToken(user: User): string {
+        const payload = {
+          id: user.id,
+          email: user.email,
+          isAdmin: user.isAdmin,
+        };
+    
+        const token = jwt.sign(payload, this.jwtSecret, {
+          expiresIn: '60m', // Base token expiration time
+        });
+    
+        return token;
+      }
 
-
-    }
+      refreshToken(oldToken: string): string {
+        const decoded = jwt.verify(oldToken, this.jwtSecret) as any;
+    
+        const newToken = jwt.sign(
+          {
+            id: decoded.id,
+            email: decoded.email,
+            isAdmin: decoded.isAdmin,
+          },
+          this.jwtSecret,
+          {
+            expiresIn: '60m', // Extend the expiration time
+          },
+        );
+    
+        return newToken;
+      }
 
     // Méthode d'enregistrement (register)
     async register(createUserDto: User): Promise<User> {
@@ -159,11 +206,13 @@ export class AuthService {
             }
 
             // Vérifier les restrictions d'envoi d'email
+            /*
             const canSendEmail = await this.checkEmailRateLimit();
             if (!canSendEmail) {
                 throw new ServiceUnavailableException('Too many registrations. Please try again later.');
             }
-
+            */
+           
             // Hash du mot de passe
             const hashedPassword = await this.hashPassword(password);
 
@@ -314,13 +363,15 @@ export class AuthService {
                     </div>
                 `,
             };
-            
+
 
             await transporter.sendMail(mailOptions);
 
         } catch (error) {
             console.log(`### Fatal error in ${methodName}`);
             console.log(error);
+            const  user = await this.getUserFromToken(token);
+            console.log(`# Debug error in ${methodName} when verify email for ${user.email}`);
             throw new HttpException('message', HttpStatus.INTERNAL_SERVER_ERROR);
 
         }
