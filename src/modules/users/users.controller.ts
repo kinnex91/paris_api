@@ -1,9 +1,10 @@
 // src/users/users.controller.ts
-import { Controller, Get, Post, Patch, Delete, Param, Body } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, ForbiddenException } from '@nestjs/common';
 import { UserService } from './users.service';
 import { User } from '../../entities/paris/v1/User';
+import { PublicUser } from '../../type/PublicUser';
 
-@Controller('users')
+@Controller('usersNotStandartRoot')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
@@ -18,15 +19,15 @@ export class UserController {
   }
 
   // Récupérer tous les utilisateurs
-  @Get()
-  async getAllUsers(): Promise<User[]> {
-    return this.userService.findAll();
+  @Get('all')
+  async getAllUsers(): Promise<PublicUser[]> {
+    return this.userService.findAllWithoutPassword();
   }
 
   // Récupérer un utilisateur par ID
   @Get(':id')
-  async getUserById(@Param('id') id: number): Promise<User> {
-    return this.userService.findOneById(id);
+  async getUserById(@Param('id') id: number): Promise<PublicUser> {
+    return this.userService.findOneByIdWithoutPassword(id);
   }
 
   // Mettre à jour un utilisateur
@@ -43,8 +44,10 @@ export class UserController {
   }
 
   // Supprimer un utilisateur
-  @Delete(':id')
+  @Delete(':idProtectedDeletion465465654489')
   async deleteUser(@Param('id') id: number): Promise<void> {
-    await this.userService.deleteUser(id);
+    console.log("### Fatal but not compromise : a try to delete with secret root as been called in this jwt protected api");
+    throw new ForbiddenException
+    //await this.userService.deleteUser(id);
   }
 }

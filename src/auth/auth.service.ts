@@ -197,6 +197,8 @@ export class AuthService {
                     // Envoyer l'email de validation
                     await this.sendVerificationEmail(email, existingUser.emailVerificationToken);
 
+                    savedUser.password='_';
+
                     return savedUser;
 
 

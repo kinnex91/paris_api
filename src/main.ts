@@ -11,7 +11,7 @@ async function bootstrap() {
       'http://localhost:15004',
       'http://localhost:3007',
       'http://localhost:5173',
-      'https://concours-pronostics.devforever.ovh',
+      'https://betforfun.devforever.ovh',
       'https://server.pronostics.devforever.ovh',
       'https://backend-pronostics.devforever.ovh',
       'https://lighthearted-entremet-760983.netlify.app',

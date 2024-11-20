@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../../entities/paris/v1/User';
 import * as bcrypt from 'bcrypt';
+import { PublicUser } from '../../type/PublicUser';
 
 @Injectable()
 export class UserService {
@@ -50,6 +51,15 @@ export class UserService {
     return this.userRepository.find();
   }
 
+
+// Récupérere tous les utilisateurs sans mot de passe
+async findAllWithoutPassword(): Promise<PublicUser[]> {
+  const users = await this.userRepository.find();
+
+  return users.map(({ password, ...userWithoutPassword }) => userWithoutPassword as PublicUser);
+}
+
+
   // Récupérer un utilisateur par ID
   async findOneById(id: number): Promise<User> {
     const user = await this.userRepository.findOne({ where: { id } });
@@ -58,6 +68,17 @@ export class UserService {
     }
     return user;
   }
+
+  // Récupérer un utilisateur par ID sans le mot de pass haché
+  async findOneByIdWithoutPassword(id: number): Promise<PublicUser> {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException(`Utilisateur avec ID ${id} introuvable`);
+    }
+    return user;
+  }
+
+  
 
   // Mettre à jour un utilisateur
   async updateUser(

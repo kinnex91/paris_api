@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 
 import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './modules/users/users.module';
 
 import { TournamentModule } from './modules/tournaments/tournament.module';
 import { ChampionshipDaysModule } from './modules/championshipDays/championshipDays.module';
@@ -37,6 +38,7 @@ import { ConfigurationsModule } from './modules/configurations/configurations.mo
     MatchesModule,
     BetsModule,
     ConfigurationsModule,
+    UsersModule,
   ],
 })
 export class AppModule {}
