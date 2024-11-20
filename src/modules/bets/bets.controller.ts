@@ -2,6 +2,7 @@ import { Controller, Get, Post, Patch, Delete, Param, Body, Headers } from '@nes
 import { BetsService } from './bets.service';
 import { Module, MiddlewareConsumer } from '@nestjs/common';
 import { InactivityMiddleware } from '../../middlewares/inactivity.middleware';
+import { PublicBet} from '../../type/PublicBet';
 
 @Controller('bets')
 export class BetsController {
@@ -40,8 +41,5 @@ export class BetsController {
     return this.betsService.delete(id, authorizationHeader);
   }
 
-  @Get('user/:id')
-  findByUserId(@Param('id') id: number, @Headers('Authorization') authorizationHeader: string) {
-    return this.betsService.findByUserId(id, authorizationHeader);
-  }
+
 }

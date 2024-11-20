@@ -9,6 +9,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PublicBet} from '../../type/PublicBet';
+import { Bet} from '../../entities/paris/v1/Bet';
 import { Match } from '../../entities/paris/v1/Match';
 import { AuthService } from '../../auth/auth.service';
 
@@ -48,7 +49,7 @@ export class BetsService {
   }
 
   // Create a new bet
-  async create(data: Partial<PublicBet>, authorizationHeader: string) {
+  async create(data: Partial<Bet>, authorizationHeader: string) {
     try {
       const user = await this.validateToken(authorizationHeader);
 
@@ -104,12 +105,14 @@ export class BetsService {
   }
 
   // Update a bet
-  async update(id: number, data: Partial<PublicBet>, authorizationHeader: string) {
+  async update(id: number, data2: Partial<PublicBet>, authorizationHeader: string) {
     try {
       const user = await this.validateToken(authorizationHeader);
       const bet = await this.validateBetOwnership(id, user.id);
 
       await this.validateBetEditable(bet.id);
+
+        const data: Partial<Bet> = this.toBet(data2);
 
       if (data.match && data.match.id) {
         const match = await this.betRepository.manager.findOne(Match, {
@@ -196,5 +199,29 @@ export class BetsService {
       console.error(`Unhandled exception: ${error.message}`, error.stack);
       throw new HttpException('Unknown error occurred', HttpStatus.INTERNAL_SERVER_ERROR);
     }
+  }
+
+  private toPublicBet(bet: Bet): PublicBet {
+    return {
+      id: bet.id,
+      predictedScoreA: bet.predictedScoreA,
+      predictedScoreB: bet.predictedScoreB,
+      isExactScore: bet.isExactScore,
+      pointsEarned: bet.pointsEarned,
+      match: bet.match,
+      user: bet.user,
+
+    };
+  }
+  private toBet(bet: Partial<PublicBet>): Partial<Bet> {
+    return {
+      id: bet.id,
+      predictedScoreA: bet.predictedScoreA,
+      predictedScoreB: bet.predictedScoreB,
+      isExactScore: bet.isExactScore,
+      pointsEarned: bet.pointsEarned,
+      match: bet.match,
+      user: bet.user,
+    } as Bet; 
   }
 }
