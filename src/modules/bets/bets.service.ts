@@ -8,15 +8,15 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Bet } from '../../entities/paris/v1/Bet';
+import { PublicBet} from '../../type/PublicBet';
 import { Match } from '../../entities/paris/v1/Match';
 import { AuthService } from '../../auth/auth.service';
 
 @Injectable()
 export class BetsService {
   constructor(
-    @InjectRepository(Bet)
-    private readonly betRepository: Repository<Bet>,
+    @InjectRepository(PublicBet)
+    private readonly betRepository: Repository<PublicBet>,
     private readonly authService: AuthService,
   ) {}
 
@@ -30,7 +30,7 @@ export class BetsService {
   }
 
   // Helper Method: Validate User Ownership of a Bet
-  private async validateBetOwnership(betId: number, userId: number): Promise<Bet> {
+  private async validateBetOwnership(betId: number, userId: number): Promise<PublicBet> {
     const bet = await this.betRepository.findOne({
       where: { id: betId },
       relations: ['user'], // Include user to check ownership
@@ -48,7 +48,7 @@ export class BetsService {
   }
 
   // Create a new bet
-  async create(data: Partial<Bet>, authorizationHeader: string) {
+  async create(data: Partial<PublicBet>, authorizationHeader: string) {
     try {
       const user = await this.validateToken(authorizationHeader);
 
@@ -104,7 +104,7 @@ export class BetsService {
   }
 
   // Update a bet
-  async update(id: number, data: Partial<Bet>, authorizationHeader: string) {
+  async update(id: number, data: Partial<PublicBet>, authorizationHeader: string) {
     try {
       const user = await this.validateToken(authorizationHeader);
       const bet = await this.validateBetOwnership(id, user.id);

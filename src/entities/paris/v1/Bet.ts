@@ -1,28 +1,35 @@
-// src/entities/Bet.ts
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, BeforeUpdate } from 'typeorm';
 import { User } from './User';
 import { Match } from './Match';
 
 @Entity()
 export class Bet {
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @Column({ default: 0 })
-    predictedScoreA: number;
-    
-    @Column({ default: 0 })
-    predictedScoreB: number;
+  @Column({ default: 0 })
+  predictedScoreA: number;
 
-    @Column({ default: false })
-    isExactScore: boolean;
+  @Column({ default: 0 })
+  predictedScoreB: number;
 
-    @Column({ default: 0 })
-    pointsEarned: number;
+  @Column({ default: false })
+  isExactScore: boolean;
 
-    @ManyToOne(() => User, (user) => user.bets)
-    user: User;
+  @Column({ default: 0 })
+  pointsEarned: number;
 
-    @ManyToOne(() => Match, (match) => match.bets)
-    match: Match;
+  @ManyToOne(() => User, (user) => user.bets)
+  user: User;
+
+  @ManyToOne(() => Match, (match) => match.bets)
+  match: Match;
+
+  @Column({ default: false })
+  hasBeenPatched: boolean;
+
+  @BeforeUpdate()
+  updateHasBeenPatched() {
+    this.hasBeenPatched = true;
+  }
 }
