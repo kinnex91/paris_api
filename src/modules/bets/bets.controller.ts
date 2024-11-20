@@ -22,6 +22,11 @@ export class BetsController {
     return this.betsService.findAll(authorizationHeader);
   }
 
+  @Get('user/:id')
+  findAllForUser(@Param('id') id: number, @Headers('Authorization') authorizationHeader: string) {
+    return this.betsService.findByUserId(id, authorizationHeader);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: number, @Headers('Authorization') authorizationHeader: string) {
     return this.betsService.findOneById(id, authorizationHeader);

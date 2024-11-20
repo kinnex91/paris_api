@@ -157,12 +157,17 @@ export class BetsService {
     }
   }
 
+
+
+
   // Retrieve bets by user ID
   async findByUserId(userId: number, authorizationHeader: string) {
     try {
       const user = await this.validateToken(authorizationHeader);
 
-      if (user.id !== userId) {
+      if (Number(user.id) !== Number(userId)){
+        console.log(`Debug: user.id=${user.id}, userId=${userId}, types: user.id=${typeof user.id}, userId=${typeof userId}`);
+
         throw new ForbiddenException('You do not have permission to access these bets');
       }
 
