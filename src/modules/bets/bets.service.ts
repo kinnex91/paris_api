@@ -16,8 +16,8 @@ import { AuthService } from '../../auth/auth.service';
 @Injectable()
 export class BetsService {
   constructor(
-    @InjectRepository(PublicBet)
-    private readonly betRepository: Repository<PublicBet>,
+    @InjectRepository(Bet)
+    private readonly betRepository: Repository<Bet>,
     private readonly authService: AuthService,
   ) {}
 
