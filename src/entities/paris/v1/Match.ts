@@ -1,5 +1,5 @@
 // src/entities/Match.ts
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, Timestamp } from 'typeorm';
+import { Entity, BeforeInsert,PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, Timestamp } from 'typeorm';
 import { ChampionshipDay } from './ChampionshipDay';
 import { Bet } from './Bet';
 import { Tournament } from './Tournament';
@@ -35,4 +35,12 @@ export class Match {
 
     @ManyToOne(() => Tournament, (tournament) => tournament.matchs)
     tournament: Tournament;
+
+    @BeforeInsert()
+  async setDefaultTournament() {
+    if (!this.tournament) {
+      this.tournament = new Tournament();
+      this.tournament.id = 1; // Set default tournament with id = 1
+    }
+  }
 }
