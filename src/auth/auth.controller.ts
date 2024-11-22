@@ -1,6 +1,10 @@
-import { BadRequestException, Body, Controller, Get, Headers, Post, Query, UnauthorizedException, UseGuards } from '@nestjs/common';
+import { Req, BadRequestException, Body, Controller, Get, Headers, Post, Query, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { User } from "../entities/paris/v1/User";
+
+import { AuthGuard } from '@nestjs/passport';
+import { JwtService } from '@nestjs/jwt';
+
 
 import * as dotenv from 'dotenv';
 dotenv.config();
@@ -63,4 +67,39 @@ export class AuthController {
         }
         return this.authService.checkIfAdmin(authorizationHeader);
     }
+
+
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  async googleAuth() {
+    // This route will trigger Google authentication
+  }
+
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  async googleAuthRedirect(@Req() req) {
+    const { email, username } = req.user;
+    let user = await this.authService.findUserByEmail(email);
+
+    if (!user) {
+      // Register the new user
+      user = await this.authService.registerGoogleUser(email, username);
+    }
+
+    // Generate JWT token
+    const token = await this.authService.generateToken(user);
+    return { accessToken: token };
+  }
+
+  @Post('google')
+  async authenticateWithGoogle(@Body() body: { credential: string }) {
+    const { credential } = body;
+
+    if (!credential) {
+      throw new BadRequestException('Google token is required');
+    }
+
+    // Validate and process the Google token
+    return await this.authService.authenticateGoogleUser(credential);
+  }
 }

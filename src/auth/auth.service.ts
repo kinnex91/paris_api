@@ -20,6 +20,7 @@ import * as process from 'process';
 import * as dotenv from 'dotenv';
 import { LoggerUtils } from '../utils/LoggerUtils';
 import * as jwt from 'jsonwebtoken';
+import axios from 'axios';
 
 dotenv.config();
 
@@ -247,6 +248,89 @@ export class AuthService {
 
     }
 
+    async findUserByEmail(email: string): Promise<User | null> {
+        return this.userRepository.findOne({ where: { email } });
+      }
+
+    async registerGoogleUser(email: string, username: string): Promise<User> {
+        const newUser = this.userRepository.create({
+          email,
+          username,
+          password: '', // Password is not required for Google users
+          isEmailVerified: true,
+        });
+        return this.userRepository.save(newUser);
+      }
+
+
+
+      async authenticateGoogleUser(credential: string) {
+        // Step 1: Verify the Google token with Google's API
+        const googleUser = await this.verifyGoogleToken(credential);
+        if (!googleUser) {
+          throw new UnauthorizedException('Invalid Google token');
+        }
+    
+        // Extract user details
+        const { email, name } = googleUser;
+    
+        // Step 2: Check if the user exists in the database
+        let user = await this.userRepository.findOne({ where: { email } });
+        if (!user) {
+
+          const crypto = require('crypto');
+          const { v4: uuidv4 } = require('uuid');
+
+          // Generate a new GUID
+const newGuid = uuidv4();
+
+// Hash the GUID using SHA-256
+const hashedPassword = crypto.createHash('sha256').update(newGuid).digest('hex');
+
+
+          // Step 3: If not, register the user
+          user = this.userRepository.create({
+            email,
+            username: name,
+            password: '#BY_GOOGLE'+hashedPassword, // No password required for Google login
+            isEmailVerified: true,
+            lastLoginDate: new Date(),
+          });
+          await this.userRepository.save(user);
+        } else {
+          // Update last login date
+          user.lastLoginDate = new Date();
+          await this.userRepository.save(user);
+        }
+    
+        // Step 4: Generate and return a JWT token
+         // Remove the password from the response
+         const { password: _, ...userWithoutPassword } = user;
+      
+         // Generate the JWT
+         const jwt = this.generateToken(user);
+     
+         // Return the JWT and user information
+         return { jwt, user: userWithoutPassword };
+      }
+    
+      private async verifyGoogleToken(credential: string): Promise<{ email: string; name: string } | null> {
+        try {
+          const response = await axios.get(
+            `https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`,
+          );
+          const { email, name } = response.data;
+    
+          if (!email || !name) {
+            throw new Error('Invalid Google token response');
+          }
+    
+          return { email, name };
+        } catch (error) {
+          console.error('Error verifying Google token:', error.message);
+          return null;
+        }
+      }
     // Vérifier les limites de temps d'inscription pour limiter l'envoi d'emails
     private async checkEmailRateLimit(): Promise<boolean> {
 
