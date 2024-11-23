@@ -15,7 +15,13 @@ async function bootstrap() {
       'https://server.pronostics.devforever.ovh',
       'https://backend-pronostics.devforever.ovh',
       'https://lighthearted-entremet-760983.netlify.app',
-      'https://www.betforfun.devforever.ovh'
+      'https://www.betforfun.devforever.ovh',
+      'https://www.concours-pronostics.devforever.ovh',
+      'https://concours-pronostics.devforever.ovh',
+         'https://www.sportcompetition.fr',
+      'https://sportcompetition.fr',
+         'https://www.sportcompetition-free.com',
+      'https://sportcompetition-free.com'
     ],
 
     methods: ['GET', 'POST', 'PUT','PATCH', 'DELETE', 'OPTIONS'],
@@ -24,9 +30,9 @@ async function bootstrap() {
   });
 
   app.use('/api', (req, res, next) => {
-    req.headers['origin'] = 'http://localhost:15002';
-    req.headers['referer'] = 'http://localhost:15002/';
-    res.header('Access-Control-Allow-Origin', '*');
+    //req.headers['origin'] = 'http://localhost:15002';
+    //req.headers['referer'] = 'http://localhost:15002/';
+    //res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     res.header('Access-Control-Allow-Credentials', 'true');
