@@ -21,6 +21,7 @@ import * as dotenv from 'dotenv';
 import { LoggerUtils } from '../utils/LoggerUtils';
 import * as jwt from 'jsonwebtoken';
 import axios from 'axios';
+import { CustomUnauthorizedException } from './exceptions/CustomUnauthorizedException ';
 
 dotenv.config();
 
@@ -101,14 +102,24 @@ export class AuthService {
           console.log('Utilisateur trouvé :', user);
       
           if (!user) {
-            throw new NotFoundException('User not found');
+            console.log('#User not found :', email);
+            throw new NotFoundException('An exception occurs');
           }
       
           console.log('#login services : User found in database ' + user.email);
       
-          // Check if the email is verified
           if (!user.isEmailVerified) {
-            throw new UnauthorizedException('Email not verified');
+                    //FEATURES-001-IMPROVE_REGISTERED
+                    //l'utilisateur n'a pas vérifié son mail, on regarde si le token date de plus d'une heure si oui on renvoie un nouveau token -->
+                    user.emailVerificationToken = uuidv4();
+                    const savedUser = await this.userRepository.save(user);
+                    // Envoyer l'email de validation
+                    await this.sendVerificationEmail(email, user.emailVerificationToken);
+
+                    savedUser.password='_';
+
+                   
+                    throw new CustomUnauthorizedException('Email not verified');
           }
       
           // Verify the password
@@ -130,9 +141,23 @@ export class AuthService {
           // Return the JWT and user information
           return { jwt, user: userWithoutPassword };
         } catch (error) {
+        
+          if (error instanceof CustomUnauthorizedException) {
+            
+            throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+          }
+      
+          
+          if (error instanceof NotFoundException) {
+            console.log(`## NotFoundException in ${methodName}: ${error.message}`);
+            throw new HttpException('An unexpected error occurred', HttpStatus.INTERNAL_SERVER_ERROR);
+          }
+      
+          // Catch other unexpected errors
           console.log(`### Fatal error in ${methodName}`);
           console.log(error);
-          throw new HttpException('message', HttpStatus.INTERNAL_SERVER_ERROR);
+          throw new HttpException('An unexpected error occurred', HttpStatus.INTERNAL_SERVER_ERROR);
+        
         }
       }
 
