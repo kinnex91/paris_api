@@ -144,7 +144,7 @@ export class AuthService {
         };
     
         const token = jwt.sign(payload, this.jwtSecret, {
-          expiresIn: '60m', // Base token expiration time
+          expiresIn: '20m', // Base token expiration time
         });
     
         return token;
@@ -161,7 +161,7 @@ export class AuthService {
           },
           this.jwtSecret,
           {
-            expiresIn: '60m', // Extend the expiration time
+            expiresIn: '20m', // Extend the expiration time
           },
         );
     
